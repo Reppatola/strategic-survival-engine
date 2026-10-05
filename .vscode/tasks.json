@@ -1,0 +1,60 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "1. Rust: Cargo Build",
+            "type": "shell",
+            "command": "cargo",
+            "args": ["build", "--manifest-path", "${workspaceFolder}/rust-bio/Cargo.toml"],
+            "group": "build",
+            "problemMatcher": ["$rustc"],
+            "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "2. C++: CMake Build",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "${workspaceFolder}/build", "--config", "${input:buildType}"],
+            "group": "build",
+            "dependsOn": "1. Rust: Cargo Build",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "3. C#: Dotnet Build",
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["build", "${workspaceFolder}/src/scripts/StrategicSurvival.csproj"],
+            "group": "build",
+            "dependsOn": "2. C++: CMake Build",
+            "problemMatcher": ["$msCompile"]
+        },
+        {
+            "label": "Full Build (All Languages)",
+            "dependsOrder": "sequence",
+            "dependsOn": ["1. Rust: Cargo Build", "2. C++: CMake Build", "3. C#: Dotnet Build"],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: Configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B", "${workspaceFolder}/build",
+                "-S", "${workspaceFolder}",
+                "-DCMAKE_BUILD_TYPE=${input:buildType}",
+                "-G", "Ninja"
+            ],
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "buildType",
+            "type": "pickString",
+            "description": "Тип сборки",
+            "options": ["Debug", "Release", "RelWithDebInfo"],
+            "default": "Debug"
+        }
+    ]
+}

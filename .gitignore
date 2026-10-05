@@ -1,0 +1,41 @@
+# ========== C / C++ ==========
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# ========== Rust ==========
+target/
+**/*.rs.bk
+# Cargo.lock НЕ игнорируем — это приложение, а не библиотека[reference:1]
+
+# ========== C# / .NET ==========
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ========== VS Code ==========
+# .vscode/ коммитим — это часть проекта
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ========== OS ==========
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Ninja",
+    "cmake.configureOnOpen": true,
+    "C_Cpp.default.cppStandard": "c++20",
+    "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+    "rust-analyzer.check.command": "clippy",
+    "dotnet.defaultSolution": "src/scripts/StrategicSurvival.sln",
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "*.hpp": "cpp",
+        "*.cpp": "cpp"
+    }
+}
