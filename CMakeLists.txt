@@ -110,3 +110,30 @@ add_test(NAME dummy_noise     COMMAND dummy_noise_test)
 # 5. ПОРЯДОК СБОРКИ
 # ============================================================
 add_dependencies(sse_prototype scripts)
+
+add_executable(anatomy_test tests/body/AnatomyTest.cpp)
+target_include_directories(anatomy_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(anatomy_test PROPERTIES FOLDER "tests")
+
+add_executable(skeleton_test tests/body/SkeletonTest.cpp)
+target_include_directories(skeleton_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(skeleton_test PROPERTIES FOLDER "tests")
+
+add_executable(skeleton_view WIN32 tests/body/SkeletonView.cpp)
+target_include_directories(skeleton_view PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(skeleton_view PRIVATE user32 gdi32)
+set_target_properties(skeleton_view PROPERTIES FOLDER "tests")
+
+add_executable(body_view WIN32 tests/body/BodyView.cpp)
+target_include_directories(body_view PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(body_view PRIVATE user32 gdi32)
+set_target_properties(body_view PROPERTIES FOLDER "tests")
+
+add_executable(character_test tests/body/CharacterTest.cpp)
+target_include_directories(character_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(character_test PROPERTIES FOLDER "tests")
+
+add_executable(body_topdown WIN32 tests/body/BodyTopDown.cpp)
+target_include_directories(body_topdown PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(body_topdown PRIVATE user32 gdi32)
+set_target_properties(body_topdown PROPERTIES FOLDER "tests")
