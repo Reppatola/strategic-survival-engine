@@ -33,3 +33,14 @@ add_custom_target(scripts ALL
 
 # ========== Порядок сборки ==========
 add_dependencies(engine-core scripts)
+
+# ============================================================
+# SSE Prototype — C++ окно с землёй + травой + цилиндром
+# ============================================================
+add_executable(sse_prototype WIN32
+    src/main.cpp
+    src/world/Patch.cpp
+    src/world/Observer.cpp
+)
+target_include_directories(sse_prototype PRIVATE src)
+target_link_libraries(sse_prototype PRIVATE user32 gdi32)

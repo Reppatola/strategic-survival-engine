@@ -35,7 +35,7 @@ struct Building {
     Color roof_color = {110, 60, 50};
     Color edge_color = {60, 40, 30};
 
-    float height_px = 12.0f;  // высота (для вида сверху — эффект объёма)
+    float elevation_px = 12.0f;   // высота объекта над землёй (эффект объёма) эффект объёма)
 
     // Состояние
     bool destroyed = false;
