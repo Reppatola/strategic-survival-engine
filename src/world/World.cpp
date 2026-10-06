@@ -10,7 +10,9 @@ namespace SSE {
 
 using namespace Config;
 
-// --- Мелкая трава для этого прототипа ---
+// ============================================================
+// Мелкая трава для этого прототипа
+// ============================================================
 static GrassType makeGrassType() {
     GrassType gt = GrassType::meadow();
     gt.length_min_px = 1.2f;
@@ -20,13 +22,16 @@ static GrassType makeGrassType() {
     return gt;
 }
 
+// ============================================================
+// World
+// ============================================================
 World::World()
     : cells_(std::make_unique<CachedCell[]>(WORLD_TOTAL))
     , queued_(WORLD_TOTAL, 0)
 {
 }
 
-// ---------- рисование линии в буфер ячейки ----------
+// ---------- утилиты рисования в буфер ячейки ----------
 static inline void putPixelBGRA(std::uint32_t* buf, int w, int h,
                                 int x, int y, std::uint32_t color) {
     if (static_cast<unsigned>(x) >= static_cast<unsigned>(w)) return;
@@ -34,8 +39,9 @@ static inline void putPixelBGRA(std::uint32_t* buf, int w, int h,
     buf[y * w + x] = color;
 }
 
-static inline std::uint32_t colorFromRGB(std::uint8_t r, std::uint8_t g, std::uint8_t b) {
-    return (0xFFu << 24)
+static inline std::uint32_t colorFromRGB(std::uint8_t r, std::uint8_t g,
+                                         std::uint8_t b) {
+    return 0xFF000000u
          | (static_cast<std::uint32_t>(r) << 16)
          | (static_cast<std::uint32_t>(g) << 8)
          | static_cast<std::uint32_t>(b);
@@ -59,7 +65,9 @@ static void drawLineToBuffer(std::uint32_t* buf, int w, int h,
     }
 }
 
-// ---------- создание одной ячейки ----------
+// ============================================================
+// СОЗДАНИЕ ЯЧЕЙКИ (единожды при попадании в зону)
+// ============================================================
 void World::loadCellData(int idx) {
     int wix = idx % WORLD_CELLS;
     int wiy = idx / WORLD_CELLS;
@@ -122,9 +130,12 @@ void World::loadCellData(int idx) {
               });
 
     cell.loaded = true;
+    ++loadedCount_;
 }
 
-// ---------- выгрузка далёких ----------
+// ============================================================
+// ВЫГРУЗКА ДАЛЁКИХ (вызывается редко, при смене ячейки)
+// ============================================================
 void World::unloadFarCells(float cx, float cy, int ccx, int ccy, int r_cells) {
     float unload_r2 = (R_LOAD * 1.4f) * (R_LOAD * 1.4f);
 
@@ -143,12 +154,15 @@ void World::unloadFarCells(float cx, float cy, int ccx, int ccy, int r_cells) {
             if (ddx * ddx + ddy * ddy > unload_r2) {
                 cell.clear();
                 queued_[idx] = 0;
+                --loadedCount_;
             }
         }
     }
 }
 
-// ---------- дозаполнение очереди ----------
+// ============================================================
+// ДОЗАПОЛНЕНИЕ ОЧЕРЕДИ
+// ============================================================
 void World::refillQueue(float cx, float cy, int ccx, int ccy, int r_cells) {
     int ddx_cells = ccx - lastScanCcx_;
     int ddy_cells = ccy - lastScanCcy_;
@@ -162,6 +176,7 @@ void World::refillQueue(float cx, float cy, int ccx, int ccy, int r_cells) {
 
     struct Pending { int idx; float dist; };
     std::vector<Pending> pending;
+    pending.reserve(300);
 
     float load_r2 = R_LOAD * R_LOAD;
 
@@ -196,7 +211,9 @@ void World::refillQueue(float cx, float cy, int ccx, int ccy, int r_cells) {
     }
 }
 
-// ---------- обработка очереди ----------
+// ============================================================
+// ОБРАБОТКА ОЧЕРЕДИ (каждый кадр, но ограниченно)
+// ============================================================
 void World::processQueue() {
     int to_load = LOAD_PER_FRAME_BASE;
     if (static_cast<int>(loadQueue_.size()) > LOAD_QUEUE_FAST_THRESHOLD) {
@@ -212,24 +229,24 @@ void World::processQueue() {
     }
 }
 
-// ---------- общий апдейт ----------
+// ============================================================
+// ОБЩИЙ АПДЕЙТ
+// ============================================================
 void World::update(float cx, float cy) {
     int ccx = static_cast<int>(std::floor(cx / CELL_SIZE));
     int ccy = static_cast<int>(std::floor(cy / CELL_SIZE));
 
     int r_cells = static_cast<int>(R_LOAD / CELL_SIZE) + 2;
 
-    unloadFarCells(cx, cy, ccx, ccy, r_cells);
+    // Выгрузка — ТОЛЬКО при смене ячейки
+    if (ccx != lastUnloadCcx_ || ccy != lastUnloadCcy_) {
+        lastUnloadCcx_ = ccx;
+        lastUnloadCcy_ = ccy;
+        unloadFarCells(cx, cy, ccx, ccy, r_cells);
+    }
+
     refillQueue(cx, cy, ccx, ccy, r_cells);
     processQueue();
-}
-
-std::size_t World::loadedCount() const {
-    std::size_t n = 0;
-    for (int i = 0; i < WORLD_TOTAL; ++i) {
-        if (cells_[i].loaded && !cells_[i].pixels.empty()) ++n;
-    }
-    return n;
 }
 
 } // namespace SSE

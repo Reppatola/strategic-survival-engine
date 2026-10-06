@@ -16,9 +16,9 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Release = максимальная оптимизация
+# Флаги Release — максимальная оптимизация
 set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Oi /Ot /GL /DNDEBUG /MD")
-set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /OPT:REF /OPT:ICF")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
 # Корень include-путей — все модули видят друг друга
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -27,7 +27,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # ============================================================
-# 1. ЯДРО — engine-core (EventBus, StateStore, GameLoop)
+# 1. ЯДРО — engine-core (EventBus, StateStore)
 # ============================================================
 add_library(engine-core STATIC
     src/core/src/EventBus.cpp
@@ -54,7 +54,10 @@ add_executable(sse_prototype WIN32
     src/platform/Win32Window.cpp
 )
 target_include_directories(sse_prototype PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(sse_prototype PRIVATE user32 gdi32)
+target_link_libraries(sse_prototype PRIVATE
+    user32
+    gdi32
+)
 set_target_properties(sse_prototype PROPERTIES FOLDER "apps")
 
 # ============================================================
@@ -106,6 +109,4 @@ add_test(NAME dummy_noise     COMMAND dummy_noise_test)
 # ============================================================
 # 5. ПОРЯДОК СБОРКИ
 # ============================================================
-# sse_prototype не зависит от C# скриптов напрямую
-# scripts — отдельная цель, собирается параллельно
 add_dependencies(sse_prototype scripts)

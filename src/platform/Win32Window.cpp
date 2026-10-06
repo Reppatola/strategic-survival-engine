@@ -1,5 +1,5 @@
 // ============================================================
-// Win32Window.cpp — окно, DIB, ввод
+// Win32Window.cpp — окно + DIB (безопасная версия)
 // ============================================================
 #include "platform/Win32Window.h"
 #include <cstring>
@@ -7,15 +7,14 @@
 namespace SSE::Platform {
 
 // ============================================================
-// WndProc — обработчик сообщений окна
+// WndProc
 // ============================================================
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
                                 WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
         case WM_ERASEBKGND:
-            // Не стираем фон — убирает мерцание
-            return 1;
+            return 1;   // не стирать фон
 
         case WM_KEYDOWN:
             if (wParam == VK_ESCAPE) PostQuitMessage(0);
@@ -29,7 +28,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 }
 
 // ============================================================
-// create — регистрация класса и создание окна
+// create
 // ============================================================
 bool Win32Window::create(HINSTANCE hInst, int w, int h, const char* title) {
     const char* CLASS_NAME = "SSEPrototypeWnd";
@@ -40,7 +39,6 @@ bool Win32Window::create(HINSTANCE hInst, int w, int h, const char* title) {
     wc.lpszClassName = CLASS_NAME;
     wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
-
     RegisterClass(&wc);
 
     RECT rect = {0, 0, w, h};
@@ -64,7 +62,7 @@ bool Win32Window::create(HINSTANCE hInst, int w, int h, const char* title) {
 }
 
 // ============================================================
-// pumpMessages — обработка очереди сообщений
+// pumpMessages
 // ============================================================
 bool Win32Window::pumpMessages() {
     MSG msg;
@@ -77,7 +75,7 @@ bool Win32Window::pumpMessages() {
 }
 
 // ============================================================
-// ensureDIB — создание DIB-секции (быстрый буфер)
+// ensureDIB
 // ============================================================
 bool Win32Window::ensureDIB(HDC hdc, int w, int h) {
     if (dibBits_ && dibW_ == w && dibH_ == h) return true;
@@ -88,7 +86,7 @@ bool Win32Window::ensureDIB(HDC hdc, int w, int h) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth       = w;
-    bmi.bmiHeader.biHeight      = -h;   // top-down
+    bmi.bmiHeader.biHeight      = -h;
     bmi.bmiHeader.biPlanes      = 1;
     bmi.bmiHeader.biBitCount    = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
@@ -106,7 +104,7 @@ bool Win32Window::ensureDIB(HDC hdc, int w, int h) {
 }
 
 // ============================================================
-// beginFrame — получить буфер для рисования
+// beginFrame
 // ============================================================
 std::uint32_t* Win32Window::beginFrame(int w, int h) {
     HDC hdc = GetDC(hwnd_);
@@ -117,7 +115,7 @@ std::uint32_t* Win32Window::beginFrame(int w, int h) {
 }
 
 // ============================================================
-// endFrame — показать буфер на экране
+// endFrame — простой BitBlt без VSync
 // ============================================================
 void Win32Window::endFrame() {
     HDC hdc = GetDC(hwnd_);
@@ -126,7 +124,7 @@ void Win32Window::endFrame() {
 }
 
 // ============================================================
-// Ввод — WASD
+// Ввод
 // ============================================================
 float Win32Window::moveX() const {
     float x = 0.0f;
