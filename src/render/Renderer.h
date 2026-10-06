@@ -1,6 +1,8 @@
-#pragma once
+#ifndef SSE_RENDER_RENDERER_H
+#define SSE_RENDER_RENDERER_H
+
 #include "world/World.h"
-#include "data/objects/Cylinder.h"
+#include "data/character/Character.h"
 #include <cstdint>
 
 namespace SSE::Render {
@@ -9,6 +11,8 @@ void renderWorld(std::uint32_t* buffer,
                  int width,
                  int height,
                  const World& world,
-                 const Cylinder& cyl);
+                 const Character& character);
 
 } // namespace SSE::Render
+
+#endif

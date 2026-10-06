@@ -1,11 +1,11 @@
 #include "render/Renderer.h"
 #include "render/FadeMask.h"
+#include "render/DrawHero.h"
 #include "world/Sphere.h"
 #include "app/Config.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 
 namespace SSE::Render {
 
@@ -18,9 +18,9 @@ inline std::uint32_t colorFromRGB(std::uint8_t r, std::uint8_t g, std::uint8_t b
          | static_cast<std::uint32_t>(b);
 }
 
-// ============================================================
-// Blit ячейки — БЕЗ fade (полная прозрачность = 255)
-// ============================================================
+// ------------------------------------------------------------
+// Blit ячейки — БЕЗ fade
+// ------------------------------------------------------------
 static void blitCellOpaque(std::uint32_t* screen,
                            const CachedCell& cell,
                            int dst_x, int dst_y)
@@ -35,9 +35,9 @@ static void blitCellOpaque(std::uint32_t* screen,
     }
 }
 
-// ============================================================
-// Blit ячейки — С fade (per-pixel blend)
-// ============================================================
+// ------------------------------------------------------------
+// Blit ячейки — С fade
+// ------------------------------------------------------------
 static void blitCellFaded(std::uint32_t* screen,
                           const CachedCell& cell,
                           int dst_x, int dst_y)
@@ -71,42 +71,9 @@ static void blitCellFaded(std::uint32_t* screen,
     }
 }
 
-// ============================================================
-// Цилиндр
-// ============================================================
-static void putCircle(std::uint32_t* sbuf,
-                      int ccx, int ccy, int rr, std::uint32_t col)
-{
-    int rr2 = rr * rr;
-    for (int oy = -rr; oy <= rr; ++oy) {
-        int x_span = static_cast<int>(std::sqrt(static_cast<float>(rr2 - oy*oy)));
-        int px0 = ccx - x_span;
-        int px1 = ccx + x_span;
-        int py = ccy + oy;
-        if (static_cast<unsigned>(py) >= SCR_H) continue;
-        if (px0 < 0) px0 = 0;
-        if (px1 >= SCR_W) px1 = SCR_W - 1;
-        std::uint32_t* row = &sbuf[py * SCR_W];
-        for (int px = px0; px <= px1; ++px) {
-            row[px] = col;
-        }
-    }
-}
-
-static void drawCylinder(std::uint32_t* sbuf, const Cylinder& c) {
-    const int r = c.radius_px;
-    putCircle(sbuf, CXP + 3, CYP + 4, r, colorFromRGB(15, 10, 10));
-    putCircle(sbuf, CXP, CYP + c.wall_height_px, r,
-              colorFromRGB(c.color_side.r, c.color_side.g, c.color_side.b));
-    putCircle(sbuf, CXP, CYP, r,
-              colorFromRGB(c.color_top.r, c.color_top.g, c.color_top.b));
-    putCircle(sbuf, CXP, CYP - r / 2, 3,
-              colorFromRGB(c.color_marker.r, c.color_marker.g, c.color_marker.b));
-}
-
-// ============================================================
+// ------------------------------------------------------------
 // Метка старта
-// ============================================================
+// ------------------------------------------------------------
 static void drawStartMarker(std::uint32_t* sbuf, float cx, float cy) {
     float dx = Sphere::wrapDelta(0.0f - cx);
     float dy = Sphere::wrapDelta(0.0f - cy);
@@ -119,48 +86,39 @@ static void drawStartMarker(std::uint32_t* sbuf, float cx, float cy) {
         }
     };
 
-    // Кольцо (без blend, упрощённо)
     for (int t = 0; t < 360; t += 4) {
         float a = t * 3.14159f / 180.0f;
         int px = sx + static_cast<int>(std::cos(a) * 22);
         int py = sy + static_cast<int>(std::sin(a) * 22);
         put(px, py, colorFromRGB(255, 60, 60));
     }
-    // Крест
     for (int i = -14; i <= 14; ++i) {
         put(sx + i, sy, colorFromRGB(255, 220, 100));
         put(sx, sy + i, colorFromRGB(255, 220, 100));
     }
-    // Центр
     for (int oy = -3; oy <= 3; ++oy)
         for (int ox = -3; ox <= 3; ++ox)
             if (ox*ox + oy*oy <= 9)
                 put(sx + ox, sy + oy, 0xFFFFFFFFu);
 }
 
-// ============================================================
-// Главный рендер — БЕЗ Screen, БЕЗ memcpy
-// ============================================================
+// ------------------------------------------------------------
+// Главный рендер
+// ------------------------------------------------------------
 void renderWorld(std::uint32_t* buffer,
                  int /*width*/, int /*height*/,
                  const World& world,
-                 const Cylinder& cyl)
+                 const Character& character)
 {
-    // Фон — земля
     const std::uint32_t bg = colorFromRGB(45, 32, 22);
     std::fill(buffer, buffer + SCR_W * SCR_H, bg);
 
-    float cx = static_cast<float>(cyl.x);
-    float cy = static_cast<float>(cyl.y);
+    float cx = character.world_x;
+    float cy = character.world_y;
 
-    // ============================================================
-    // Ключевая оптимизация: определяем ЦЕНТРАЛЬНУЮ ячейку,
-    // считаем диапазон видимых ячеек вокруг неё.
-    // ============================================================
     int center_ix = static_cast<int>(cx / CELL_SIZE);
     int center_iy = static_cast<int>(cy / CELL_SIZE);
 
-    // Радиус в ячейках для R_FADE
     int rc = static_cast<int>(R_FADE / CELL_SIZE) + 2;
 
     const CachedCell* cells = world.cells();
@@ -186,25 +144,23 @@ void renderWorld(std::uint32_t* buffer,
             if (dst_x + CELL_SIZE < 0 || dst_x >= SCR_W) continue;
             if (dst_y + CELL_SIZE < 0 || dst_y >= SCR_H) continue;
 
-            // Определяем зону ячейки (быстрая оценка по центру)
             float c_cx = ddx + CELL_SIZE * 0.5f;
             float c_cy = ddy + CELL_SIZE * 0.5f;
             float center_sq = c_cx * c_cx + c_cy * c_cy;
-            float cell_radius_sq = CELL_SIZE * CELL_SIZE * 0.5f;  // половина диагонали
+            float cell_radius_sq = CELL_SIZE * CELL_SIZE * 0.5f;
 
             if (center_sq + cell_radius_sq <= R_CORE * R_CORE) {
-                // Всё ядро — без fade
                 blitCellOpaque(buffer, cell, dst_x, dst_y);
             } else if (center_sq - cell_radius_sq < R_FADE * R_FADE) {
-                // Есть пиксели в fade-зоне
                 blitCellFaded(buffer, cell, dst_x, dst_y);
             }
-            // Иначе — вне R_FADE, пропускаем
         }
     }
 
     drawStartMarker(buffer, cx, cy);
-    drawCylinder(buffer, cyl);
+
+    // ГЕРОЙ — вместо цилиндра
+    drawHero(buffer, SCR_W, SCR_H, CXP, CYP, character);
 }
 
 } // namespace SSE::Render

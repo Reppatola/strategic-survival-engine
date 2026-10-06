@@ -7,19 +7,17 @@ namespace SSE::Body {
 
 // ============================================================
 // СОСТОЯНИЕ ТЕЛА
-// Данные знают — что тело делает сейчас.
-// Наблюдатель видит только результат.
 // ============================================================
 
 enum class Pose : std::uint8_t {
-    STANDING,     // стоит
-    WALKING,      // идёт
-    RUNNING,      // бежит
-    SNEAKING,     // крадётся
-    SITTING,      // сидит
-    LYING,        // лежит
-    CRAWLING,     // ползёт
-    DEAD          // мёртв
+    STANDING,
+    WALKING,
+    RUNNING,
+    SNEAKING,
+    SITTING,
+    LYING,
+    CRAWLING,
+    DEAD
 };
 
 enum class Facing : std::uint8_t {
@@ -31,7 +29,11 @@ struct BodyState {
     Pose   pose   = Pose::STANDING;
     Facing facing = Facing::S;
 
-    float anim_phase = 0.0f;   // 0..1 — фаза анимации
+    // Угол направления (0 = юг, против часовой)
+    float facing_rad = 0.0f;
+    float target_rad = 0.0f;
+
+    float anim_phase = 0.0f;   // 0..2π — фаза анимации
     float health     = 100.0f;
 };
 

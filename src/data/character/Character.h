@@ -15,12 +15,16 @@ namespace SSE {
 
 // ============================================================
 // ПЕРСОНАЖ
-// Скелет + форма + одежда (размер + цвет) + поза.
+// Скелет + форма + одежда + поза + мировые координаты.
 // ============================================================
 struct Character {
     // --- Идентификация ---
     std::string name   = "Герой";
     std::string gender = "male";
+
+    // --- Позиция в мире ---
+    float world_x = 0.0f;
+    float world_y = 0.0f;
 
     // --- Данные тела ---
     Body::HumanAnatomy anatomy = Body::STANDARD_MALE;
@@ -28,7 +32,6 @@ struct Character {
     Body::BodyState    state;
 
     // --- Одежда (размер + цвет) ---
-    // Имя Outfit — чтобы не путать с namespace SSE::Clothing
     struct Outfit {
         int   hat_size  = 57;
         Color hat_color = {60, 40, 25, 255};
@@ -43,16 +46,10 @@ struct Character {
         Color shoe_color = {40, 30, 25, 255};
     } outfit;
 
-    // ============================================================
-    // Построить скелет
-    // ============================================================
     void buildSkeleton(float facing_rad = 0.0f) {
         skeleton = Body::Skeleton::fromAnatomy(anatomy, facing_rad);
     }
 
-    // ============================================================
-    // Ссылки на данные одежды (по размеру)
-    // ============================================================
     const Clothing::Headwear::HatSize*  hat() const {
         return Clothing::Headwear::findHatSize(outfit.hat_size);
     }

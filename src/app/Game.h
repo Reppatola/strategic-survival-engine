@@ -1,6 +1,8 @@
-#pragma once
+#ifndef SSE_APP_GAME_H
+#define SSE_APP_GAME_H
+
 #include "world/World.h"
-#include "data/objects/Cylinder.h"
+#include "data/character/Character.h"
 #include <cstdint>
 
 namespace SSE {
@@ -11,14 +13,14 @@ public:
     void update(float dt);
     void render(std::uint32_t* buffer, int w, int h);
 
-    Cylinder& cylinder() { return cylinder_; }
+    Character& character() { return character_; }
     const World& world() const { return world_; }
 
     float fps() const { return fps_; }
 
 private:
     World world_;
-    Cylinder cylinder_;
+    Character character_;
 
     float fps_ = 0.0f;
     int   fpsFrames_ = 0;
@@ -28,3 +30,5 @@ private:
 };
 
 } // namespace SSE
+
+#endif

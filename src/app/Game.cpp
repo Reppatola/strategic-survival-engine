@@ -2,6 +2,7 @@
 #include "app/Config.h"
 #include "render/Renderer.h"
 #include "world/Sphere.h"
+#include "data/character/characters/Hero01.h"
 #include <cmath>
 
 namespace SSE {
@@ -9,9 +10,9 @@ namespace SSE {
 using namespace Config;
 
 Game::Game() {
-    cylinder_.x = 0;
-    cylinder_.y = 0;
-    cylinder_.radius_px = 12;
+    character_ = Characters::hero01();
+    character_.world_x = 0.0f;
+    character_.world_y = 0.0f;
 }
 
 void Game::tickFps(float dt) {
@@ -26,13 +27,11 @@ void Game::tickFps(float dt) {
 
 void Game::update(float dt) {
     tickFps(dt);
-    float cx = static_cast<float>(cylinder_.x);
-    float cy = static_cast<float>(cylinder_.y);
-    world_.update(cx, cy);
+    world_.update(character_.world_x, character_.world_y);
 }
 
 void Game::render(std::uint32_t* buffer, int w, int h) {
-    Render::renderWorld(buffer, w, h, world_, cylinder_);
+    Render::renderWorld(buffer, w, h, world_, character_);
 }
 
 } // namespace SSE

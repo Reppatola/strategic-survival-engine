@@ -51,6 +51,7 @@ add_executable(sse_prototype WIN32
     src/world/Patch.cpp
     src/render/FadeMask.cpp
     src/render/Renderer.cpp
+    src/render/DrawHero.cpp
     src/platform/Win32Window.cpp
 )
 target_include_directories(sse_prototype PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -137,3 +138,16 @@ add_executable(body_topdown WIN32 tests/body/BodyTopDown.cpp)
 target_include_directories(body_topdown PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(body_topdown PRIVATE user32 gdi32)
 set_target_properties(body_topdown PROPERTIES FOLDER "tests")
+
+add_executable(head_test tests/hero/HeadTest.cpp)
+target_include_directories(head_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(head_test PROPERTIES FOLDER "tests")
+
+add_executable(hero_test tests/hero/HeroTest.cpp)
+target_include_directories(hero_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(hero_test PROPERTIES FOLDER "tests")
+
+add_executable(hero_topdown WIN32 tests/hero/HeroTopDown.cpp)
+target_include_directories(hero_topdown PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(hero_topdown PRIVATE user32 gdi32)
+set_target_properties(hero_topdown PROPERTIES FOLDER "tests")

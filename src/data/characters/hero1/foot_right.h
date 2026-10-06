@@ -1,0 +1,41 @@
+#ifndef SSE_HERO1_FOOT_RIGHT_H
+#define SSE_HERO1_FOOT_RIGHT_H
+
+#include "data/characters/Slice.h"
+#include "data/characters/BodyPart.h"
+
+namespace SSE::Hero1::FootRight {
+
+using namespace SSE::Characters;
+
+inline constexpr AttachPoint ATTACH   = AttachPoint::ANKLE_R;
+inline constexpr PartKind   KIND     = PartKind::FOOT;
+inline constexpr float      ATTACH_Z = 6.0f;
+inline constexpr float      ATTACH_X = 8.5f;
+
+inline constexpr HSlice H_SLICES[] = {
+    {   6.0f,  10.0f, 26.0f,  0.0f,  5.0f },
+    {   4.0f,  10.0f, 26.0f,  0.0f,  5.0f },
+    {   2.0f,   9.5f, 25.0f,  0.0f,  5.0f },
+    {   0.0f,   9.0f, 24.0f,  0.0f,  5.0f },
+};
+
+inline constexpr int H_SLICES_COUNT = sizeof(H_SLICES) / sizeof(HSlice);
+
+inline constexpr VSlice V_SLICES[] = {
+    { -5.0f,   6.0f, 26.0f,  0.0f,  5.0f },
+    {  0.0f,   6.0f, 26.0f,  0.0f,  5.0f },
+    {  5.0f,   6.0f, 26.0f,  0.0f,  5.0f },
+};
+
+inline constexpr int V_SLICES_COUNT = sizeof(V_SLICES) / sizeof(VSlice);
+
+inline constexpr PartMaterial MATERIAL = {
+    {  40,  30,  25, 255 },
+    {  20,  15,  10, 255 },
+    {  60,  50,  40, 255 }
+};
+
+} // namespace SSE::Hero1::FootRight
+
+#endif

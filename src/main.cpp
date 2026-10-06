@@ -1,6 +1,5 @@
 // ============================================================
 // SSE Prototype — точка входа
-// Режимы скорости: CTRL — красться, обычная — ходьба, SHIFT — бег
 // ============================================================
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -15,13 +14,14 @@
 #include "platform/Win32Window.h"
 #include "render/FadeMask.h"
 #include "world/Sphere.h"
+#include "data/body/BodyState.h"
 
 using namespace SSE;
 using namespace SSE::Config;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     Platform::Win32Window window;
-    if (!window.create(hInstance, SCR_W, SCR_H, "SSE — Optimized"))
+    if (!window.create(hInstance, SCR_W, SCR_H, "SSE — Hero"))
         return 1;
 
     Render::buildFadeMask();
@@ -45,18 +45,52 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
         float mx = window.moveX();
         float my = window.moveY();
 
+        Character& hero = game.character();
+
         if (mx != 0.0f || my != 0.0f) {
             float speed = SPEED_WALK;
-            if (GetAsyncKeyState(VK_SHIFT)   & 0x8000) speed = SPEED_RUN;
-            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) speed = SPEED_SNEAK;
+            Body::Pose pose = Body::Pose::WALKING;
+
+            if (GetAsyncKeyState(VK_SHIFT)   & 0x8000) {
+                speed = SPEED_RUN;
+                pose  = Body::Pose::RUNNING;
+            }
+            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
+                speed = SPEED_SNEAK;
+                pose  = Body::Pose::SNEAKING;
+            }
 
             float len = std::sqrt(mx * mx + my * my);
-            game.cylinder().x += static_cast<int>(mx / len * speed * dt);
-            game.cylinder().y += static_cast<int>(my / len * speed * dt);
-            game.cylinder().x = static_cast<int>(Sphere::wrapFloat(
-                static_cast<float>(game.cylinder().x)));
-            game.cylinder().y = static_cast<int>(Sphere::wrapFloat(
-                static_cast<float>(game.cylinder().y)));
+            hero.world_x += mx / len * speed * dt;
+            hero.world_y += my / len * speed * dt;
+            hero.world_x = Sphere::wrapFloat(hero.world_x);
+            hero.world_y = Sphere::wrapFloat(hero.world_y);
+
+            hero.state.pose = pose;
+
+            // Угол движения: atan2(x, y) → 0 = юг, по часовой
+            float target = std::atan2(mx, my);
+
+            // Плавный поворот
+            float diff = target - hero.state.facing_rad;
+            while (diff >  3.14159265f) diff -= 6.2831853f;
+            while (diff < -3.14159265f) diff += 6.2831853f;
+
+            float turn_speed = 10.0f;
+            float max_turn = turn_speed * dt;
+            if (diff >  max_turn) diff =  max_turn;
+            if (diff < -max_turn) diff = -max_turn;
+
+            hero.state.facing_rad += diff;
+
+            // Анимация ходьбы
+            hero.state.anim_phase += dt * 8.0f;
+            constexpr float TWO_PI = 6.2831853f;
+            while (hero.state.anim_phase >= TWO_PI)
+                hero.state.anim_phase -= TWO_PI;
+        } else {
+            hero.state.pose = Body::Pose::STANDING;
+            hero.state.anim_phase = 0.0f;
         }
 
         // ---------- Мир ----------
@@ -71,18 +105,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             if (hudTimer >= 0.25f) {
                 hudTimer = 0.0f;
 
-                float mdx = Sphere::wrapDelta(
-                    0.0f - static_cast<float>(game.cylinder().x));
-                float mdy = Sphere::wrapDelta(
-                    0.0f - static_cast<float>(game.cylinder().y));
+                float mdx = Sphere::wrapDelta(0.0f - hero.world_x);
+                float mdy = Sphere::wrapDelta(0.0f - hero.world_y);
                 float mdist = std::sqrt(mdx * mdx + mdy * mdy);
 
                 wchar_t buf[256];
                 swprintf_s(buf,
-                    L"Pos: %d, %d  |  Start: %.0f px  |  Cells: %zu  |  Queue: %zu  |  FPS: %.1f",
-                    game.cylinder().x,
-                    game.cylinder().y,
-                    mdist,
+                    L"Pos: %.0f, %.0f  |  Start: %.0f  |  Cells: %zu  |  Q: %zu  |  FPS: %.1f",
+                    hero.world_x, hero.world_y, mdist,
                     game.world().loadedCount(),
                     game.world().queueSize(),
                     game.fps());
