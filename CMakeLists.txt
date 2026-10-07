@@ -20,19 +20,35 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Oi /Ot /GL /DNDEBUG /MD")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-# Корень include-путей — все модули видят друг друга
+# Корень include-путей
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 # Группировка в Solution Explorer
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # ============================================================
-# 1. ЯДРО — engine-core (EventBus, StateStore)
+# RUST — сборка staticlib (rust-hero)
+# ============================================================
+set(RUST_HERO_DIR  "${CMAKE_SOURCE_DIR}/rust-bio")
+set(RUST_HERO_LIB  "${CMAKE_SOURCE_DIR}/target/release/rust_hero.lib")
+
+add_custom_command(
+    OUTPUT ${RUST_HERO_LIB}
+    COMMAND cargo build --release --manifest-path ${RUST_HERO_DIR}/Cargo.toml
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Building Rust hero library..."
+    VERBATIM
+)
+
+add_custom_target(rust_hero_build DEPENDS ${RUST_HERO_LIB})
+set_target_properties(rust_hero_build PROPERTIES FOLDER "rust")
+
+# ============================================================
+# ЯДРО — engine-core (EventBus, StateStore)
 # ============================================================
 add_library(engine-core STATIC
     src/core/src/EventBus.cpp
     src/core/src/StateStore.cpp
-    # src/core/src/GameLoop.cpp    # раскомментировать, когда будет готов
 )
 target_include_directories(engine-core PUBLIC
     ${CMAKE_SOURCE_DIR}/src/core/include
@@ -41,7 +57,7 @@ target_include_directories(engine-core PUBLIC
 set_target_properties(engine-core PROPERTIES FOLDER "core")
 
 # ============================================================
-# 2. РЕАЛЬНЫЙ ПРОТОТИП МИРА — sse_prototype (Win32 окно)
+# ПРОТОТИП МИРА — sse_prototype (Win32 + Rust hero)
 # ============================================================
 add_executable(sse_prototype WIN32
     src/main.cpp
@@ -51,19 +67,25 @@ add_executable(sse_prototype WIN32
     src/world/Patch.cpp
     src/render/FadeMask.cpp
     src/render/Renderer.cpp
-    src/render/DrawHero.cpp
     src/render/HeroRenderer.cpp
     src/platform/Win32Window.cpp
 )
+
+add_dependencies(sse_prototype rust_hero_build)
+
 target_include_directories(sse_prototype PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(sse_prototype PRIVATE
     user32
     gdi32
+    ntdll                    # ← для Rust std (NtWriteFile и др.)
+    ws2_32                   # ← для Rust std (сеть, сокеты)
+    advapi32                 # ← для Rust std (криптография, registry)
+    ${RUST_HERO_LIB}
 )
 set_target_properties(sse_prototype PROPERTIES FOLDER "apps")
 
 # ============================================================
-# 3. C# СКРИПТЫ (PlayerController, AIStateLogic)
+# C# СКРИПТЫ
 # ============================================================
 add_custom_target(scripts ALL
     COMMAND dotnet build
@@ -74,10 +96,11 @@ add_custom_target(scripts ALL
 set_target_properties(scripts PROPERTIES FOLDER "scripts")
 
 # ============================================================
-# 4. ТЕСТЫ — модульные тесты ядра
+# ТЕСТЫ
 # ============================================================
 enable_testing()
 
+# --- Ядро ---
 add_executable(eventbus_test   tests/core/EventBusTest.cpp)
 add_executable(statestore_test tests/core/StateStoreTest.cpp)
 add_executable(component_test  tests/core/ComponentTest.cpp)
@@ -108,11 +131,7 @@ add_test(NAME statestore_test COMMAND statestore_test)
 add_test(NAME component_test  COMMAND component_test)
 add_test(NAME dummy_noise     COMMAND dummy_noise_test)
 
-# ============================================================
-# 5. ПОРЯДОК СБОРКИ
-# ============================================================
-add_dependencies(sse_prototype scripts)
-
+# --- Тело ---
 add_executable(anatomy_test tests/body/AnatomyTest.cpp)
 target_include_directories(anatomy_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_target_properties(anatomy_test PROPERTIES FOLDER "tests")
@@ -140,6 +159,7 @@ target_include_directories(body_topdown PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(body_topdown PRIVATE user32 gdi32)
 set_target_properties(body_topdown PROPERTIES FOLDER "tests")
 
+# --- Герой ---
 add_executable(head_test tests/hero/HeadTest.cpp)
 target_include_directories(head_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_target_properties(head_test PROPERTIES FOLDER "tests")
@@ -152,3 +172,8 @@ add_executable(hero_topdown WIN32 tests/hero/HeroTopDown.cpp)
 target_include_directories(hero_topdown PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(hero_topdown PRIVATE user32 gdi32)
 set_target_properties(hero_topdown PROPERTIES FOLDER "tests")
+
+# ============================================================
+# ПОРЯДОК СБОРКИ
+# ============================================================
+add_dependencies(sse_prototype scripts)
