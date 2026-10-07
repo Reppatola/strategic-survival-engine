@@ -9,12 +9,7 @@ namespace SSE::Hero1::FootLeft {
 using namespace SSE::Characters;
 
 // ============================================================
-// ЛЕВАЯ СТОПА ГЕРОЯ 01
-// 26 см длина × 10 см ширина × 6 см высота.
-//
-// Стопа СМЕЩЕНА ВПЕРЁД от точки крепления (ankle):
-//   пятка (сзади):   8 см (offset_y = 5 - 13 = -8)
-//   носок (спереди): 18 см (offset_y = 5 + 13 = +18)
+// ЛЕВАЯ СТОПА — под телом, носки чуть видны впереди.
 // ============================================================
 
 inline constexpr AttachPoint ATTACH   = AttachPoint::ANKLE_L;
@@ -24,18 +19,18 @@ inline constexpr float      ATTACH_X = -8.5f;
 
 inline constexpr HSlice H_SLICES[] = {
     //   z     width  depth  off_x  off_y
-    {   6.0f,  10.0f, 26.0f,  0.0f,  5.0f },   // смещено вперёд на 5 см
-    {   4.0f,  10.0f, 26.0f,  0.0f,  5.0f },
-    {   2.0f,   9.5f, 25.0f,  0.0f,  5.0f },
-    {   0.0f,   9.0f, 24.0f,  0.0f,  5.0f },
+    {   6.0f,   9.0f, 22.0f,  0.0f,  2.0f },
+    {   4.0f,   9.0f, 22.0f,  0.0f,  2.0f },
+    {   2.0f,   8.5f, 21.0f,  0.0f,  2.0f },
+    {   0.0f,   8.0f, 20.0f,  0.0f,  2.0f },
 };
 
 inline constexpr int H_SLICES_COUNT = sizeof(H_SLICES) / sizeof(HSlice);
 
 inline constexpr VSlice V_SLICES[] = {
-    { -5.0f,   6.0f, 26.0f,  0.0f,  5.0f },
-    {  0.0f,   6.0f, 26.0f,  0.0f,  5.0f },
-    {  5.0f,   6.0f, 26.0f,  0.0f,  5.0f },
+    { -4.5f,   6.0f, 22.0f,  0.0f,  2.0f },
+    {  0.0f,   6.0f, 22.0f,  0.0f,  2.0f },
+    {  4.5f,   6.0f, 22.0f,  0.0f,  2.0f },
 };
 
 inline constexpr int V_SLICES_COUNT = sizeof(V_SLICES) / sizeof(VSlice);
