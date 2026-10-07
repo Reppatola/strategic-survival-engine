@@ -46,21 +46,16 @@ pub unsafe fn render_hero(
     pose: u32,
     anim_phase: f32,
 ) {
-    // --- Углы качания по позе (sin от угла) ---
-    let swing_amp = match pose {
-        1 => 0.22f32, // WALKING
-        2 => 0.42f32, // RUNNING
-        3 => 0.12f32, // SNEAKING
-        _ => 0.0f32,
-    };
+    // --- Амплитуды из таблицы анимации ---
+    let (arm_amp, leg_amp) = crate::animation::amplitudes_for(pose);
 
     let s = anim_phase.sin();
 
     let swing = Swing {
-        arm_left: -swing_amp * s,
-        arm_right: swing_amp * s,
-        leg_left: swing_amp * s,
-        leg_right: -swing_amp * s,
+        arm_left: -arm_amp * s,
+        arm_right: arm_amp * s,
+        leg_left: leg_amp * s,
+        leg_right: -leg_amp * s,
     };
 
     let max_local: f32 = 30.0;

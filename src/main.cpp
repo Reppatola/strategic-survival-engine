@@ -15,6 +15,8 @@
 #include "render/FadeMask.h"
 #include "world/Sphere.h"
 #include "data/body/BodyState.h"
+// FFI: получить частоту фазы из Rust
+extern "C" float rust_get_phase_rate(unsigned int pose);
 
 using namespace SSE;
 using namespace SSE::Config;
@@ -81,8 +83,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
             hero.state.facing_rad += diff;
 
-            // ФАЗА АНИМАЦИИ — растёт при движении
-            hero.state.anim_phase += dt * 8.0f;
+            // ФАЗА АНИМАЦИИ — частота берётся из Rust
+            float rate = rust_get_phase_rate(
+                static_cast<unsigned int>(hero.state.pose));
+            hero.state.anim_phase += dt * rate;
+
             constexpr float TWO_PI = 6.2831853f;
             while (hero.state.anim_phase >= TWO_PI)
                 hero.state.anim_phase -= TWO_PI;
