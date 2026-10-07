@@ -1,12 +1,13 @@
 // ============================================================
 // rust-hero — библиотека рендера и данных героя
-// FFI-мост между C++ (мир) и Rust (герой, шум, анимация)
+// FFI-мост между C++ (мир) и Rust (герой, зомби, шум, анимация)
 // ============================================================
 
 mod animation;
 mod clothing;
 mod noise_table;
 mod parts;
+mod parts_zombie;
 mod render;
 mod slice;
 mod step_noise;
@@ -168,4 +169,36 @@ pub extern "C" fn rust_db_at_distance(l1_db: f32, r_meters: f32) -> f32 {
 #[no_mangle]
 pub extern "C" fn rust_hearing_radius(l1_db: f32, threshold_db: f32) -> f32 {
     crate::step_noise::hearing_radius(l1_db, threshold_db)
+}
+
+// ============================================================
+// FFI: рендер зомби с перспективой и куллингом
+// ============================================================
+#[no_mangle]
+pub unsafe extern "C" fn rust_render_zombie(
+    buffer: *mut u32,
+    width: i32,
+    height: i32,
+    cx: i32,
+    cy: i32,
+    facing: f32,
+    scale: f32,
+    pose: u32,
+    anim_phase: f32,
+    obs_height_cm: f32,
+    fade: f32,
+) {
+    crate::render::render_zombie(
+        buffer,
+        width,
+        height,
+        cx,
+        cy,
+        facing,
+        scale,
+        pose,
+        anim_phase,
+        obs_height_cm,
+        fade,
+    );
 }

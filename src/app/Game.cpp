@@ -28,12 +28,13 @@ void Game::tickFps(float dt) {
 }
 
 void Game::update(float dt) {
+    last_dt_ = dt;
     tickFps(dt);
     world_.update(character_.world_x, character_.world_y);
 }
 
 void Game::render(std::uint32_t* buffer, int w, int h) {
-    Render::renderWorld(buffer, w, h, world_, character_);
+    Render::renderWorld(buffer, w, h, world_, character_, last_dt_);
 }
 
 } // namespace SSE

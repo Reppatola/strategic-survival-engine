@@ -11,7 +11,8 @@ void renderWorld(std::uint32_t* buffer,
                  int width,
                  int height,
                  const World& world,
-                 const Character& character);
+                 const Character& character,
+                 float dt);
 
 } // namespace SSE::Render
 

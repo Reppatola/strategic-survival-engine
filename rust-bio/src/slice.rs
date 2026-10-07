@@ -61,3 +61,16 @@ pub struct Swing {
     pub leg_left: f32,
     pub leg_right: f32,
 }
+
+// ============================================================
+// ID ЧАСТЕЙ ЗОМБИ
+// ============================================================
+pub const ZPART_HEAD: u8 = 20;
+pub const ZPART_TORSO_UP: u8 = 21;
+pub const ZPART_TORSO_LOW: u8 = 22;
+pub const ZPART_ARM_LEFT: u8 = 23;
+pub const ZPART_ARM_RIGHT: u8 = 24;
+pub const ZPART_LEG_LEFT: u8 = 25;
+pub const ZPART_LEG_RIGHT: u8 = 26;
+pub const ZPART_FOOT_LEFT: u8 = 27;
+pub const ZPART_FOOT_RIGHT: u8 = 28;

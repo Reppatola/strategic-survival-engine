@@ -18,6 +18,8 @@ endif()
 
 # Флаги Release — максимальная оптимизация
 set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Oi /Ot /GL /DNDEBUG /MD")
+# UTF-8 для всех C++ файлов
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
 # Корень include-путей

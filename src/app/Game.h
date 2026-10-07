@@ -1,4 +1,6 @@
-#pragma once
+#ifndef SSE_APP_GAME_H
+#define SSE_APP_GAME_H
+
 #include "world/World.h"
 #include "data/character/Character.h"
 #include <cstdint>
@@ -20,6 +22,8 @@ private:
     World world_;
     Character character_;
 
+    float last_dt_ = 0.0f;
+
     float fps_ = 0.0f;
     int   fpsFrames_ = 0;
     float fpsTimer_ = 0.0f;
@@ -28,3 +32,5 @@ private:
 };
 
 } // namespace SSE
+
+#endif
