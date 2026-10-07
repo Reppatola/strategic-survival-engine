@@ -1,9 +1,15 @@
 pub mod arm_left;
 pub mod arm_right;
+pub mod backpack;
+pub mod cap;
 pub mod foot_left;
 pub mod foot_right;
 pub mod head;
+pub mod head_ears;
+pub mod head_face;
+pub mod head_nose;
 pub mod leg_left;
 pub mod leg_right;
+pub mod straps;
 pub mod torso_lower;
 pub mod torso_upper;

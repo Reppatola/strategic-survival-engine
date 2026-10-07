@@ -49,8 +49,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
         if (mx != 0.0f || my != 0.0f) {
             float speed = SPEED_WALK;
-            if (GetAsyncKeyState(VK_SHIFT)   & 0x8000) speed = SPEED_RUN;
-            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) speed = SPEED_SNEAK;
+            Body::Pose pose = Body::Pose::WALKING;
+
+            if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+                speed = SPEED_RUN;
+                pose  = Body::Pose::RUNNING;
+            }
+            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
+                speed = SPEED_SNEAK;
+                pose  = Body::Pose::SNEAKING;
+            }
 
             float len = std::sqrt(mx * mx + my * my);
             hero.world_x += mx / len * speed * dt;
@@ -58,12 +66,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             hero.world_x = Sphere::wrapFloat(hero.world_x);
             hero.world_y = Sphere::wrapFloat(hero.world_y);
 
-            hero.state.pose = Body::Pose::WALKING;
+            hero.state.pose = pose;
 
-            // Целевой угол
+            // Поворот
             float target = std::atan2(mx, my);
-
-            // Плавный поворот
             float diff = target - hero.state.facing_rad;
             while (diff >  3.14159265f) diff -= 6.2831853f;
             while (diff < -3.14159265f) diff += 6.2831853f;
@@ -74,8 +80,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             if (diff < -max_turn) diff = -max_turn;
 
             hero.state.facing_rad += diff;
+
+            // ФАЗА АНИМАЦИИ — растёт при движении
+            hero.state.anim_phase += dt * 8.0f;
+            constexpr float TWO_PI = 6.2831853f;
+            while (hero.state.anim_phase >= TWO_PI)
+                hero.state.anim_phase -= TWO_PI;
         } else {
             hero.state.pose = Body::Pose::STANDING;
+            hero.state.anim_phase = 0.0f;
         }
 
         // ---------- Мир ----------
@@ -96,11 +109,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
                 wchar_t buf[256];
                 swprintf_s(buf,
-                    L"Pos: %.0f, %.0f  |  Start: %.0f  |  Cells: %zu  |  Q: %zu  |  FPS: %.1f",
-                    hero.world_x, hero.world_y, mdist,
+                    L"Pos: %.0f, %.0f  |  Cells: %zu  |  FPS: %.1f  |  pose=%d  phase=%.2f",
+                    hero.world_x,
+                    hero.world_y,
                     game.world().loadedCount(),
-                    game.world().queueSize(),
-                    game.fps());
+                    game.fps(),
+                    static_cast<int>(hero.state.pose),
+                    hero.state.anim_phase);
                 hudLine1 = buf;
             }
 

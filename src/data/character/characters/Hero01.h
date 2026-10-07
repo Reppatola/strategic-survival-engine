@@ -28,7 +28,7 @@ inline Character hero01() {
     c.outfit.hoodie_size  = 46;
     c.outfit.hoodie_color = {80, 100, 160, 255};
 
-    c.outfit.pants_size   = 50;
+    c.outfit.pants_size   = 46;
     c.outfit.pants_color  = {60, 70, 100, 255};
 
     c.outfit.shoe_size    = 43;

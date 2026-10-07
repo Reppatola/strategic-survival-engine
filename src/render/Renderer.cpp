@@ -3,6 +3,7 @@
 #include "render/HeroRenderer.h"
 #include "world/Sphere.h"
 #include "app/Config.h"
+#include "data/body/BodyState.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -144,7 +145,7 @@ void renderWorld(std::uint32_t* buffer,
             if (dst_x + CELL_SIZE < 0 || dst_x >= SCR_W) continue;
             if (dst_y + CELL_SIZE < 0 || dst_y >= SCR_H) continue;
 
-                        float cell_half = CELL_SIZE * 0.5f;
+            float cell_half = CELL_SIZE * 0.5f;
             float c_cx = ddx + cell_half;
             float c_cy = ddy + cell_half;
             float center_sq = c_cx * c_cx + c_cy * c_cy;
@@ -160,23 +161,22 @@ void renderWorld(std::uint32_t* buffer,
             float farthest_sq = dx_far * dx_far + dy_far * dy_far;
 
             if (farthest_sq <= R_CORE * R_CORE) {
-                // Ячейка целиком в ядре — opaque
                 blitCellOpaque(buffer, cell, dst_x, dst_y);
             } else if (nearest_sq < R_FADE * R_FADE) {
-                // Есть пиксели в зоне fade — рисуем с fade
                 blitCellFaded(buffer, cell, dst_x, dst_y);
             }
-            // Иначе — ячейка вне обзора, пропускаем
         }
     }
 
     drawStartMarker(buffer, cx, cy);
 
-    // ГЕРОЙ — из срезов
+    // ГЕРОЙ — из Rust, с позой и анимацией
     Render::drawHeroFromSlices(buffer, SCR_W, SCR_H,
                                 CXP, CYP,
                                 character.state.facing_rad,
-                                1.0f);
+                                1.2f,
+                                static_cast<unsigned int>(character.state.pose),
+                                character.state.anim_phase);
 }
 
 } // namespace SSE::Render

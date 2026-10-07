@@ -1,20 +1,25 @@
 use crate::slice::*;
 use crate::volume::highest_z_local;
 
-// ------------------------------------------------------------
-// Цвет части (BGRA)
-// ------------------------------------------------------------
 fn color_for_part(part: u8, z: f32) -> u32 {
     let base: u32 = match part {
-        PART_HEAD => 0xFF5A4128,
-        PART_TORSO_UP => 0xFF5064A0,
-        PART_TORSO_LOW => 0xFF3C4664,
-        PART_ARM_LEFT => 0xFF5064A0,
-        PART_ARM_RIGHT => 0xFF5064A0,
-        PART_LEG_LEFT => 0xFF3C4664,
-        PART_LEG_RIGHT => 0xFF3C4664,
-        PART_FOOT_LEFT => 0xFF281E19,
-        PART_FOOT_RIGHT => 0xFF281E19,
+        PART_HEAD => 0xFF4A3520,      // волосы (светлее, видно на фоне)
+        PART_TORSO_UP => 0xFF2E3D5E,  // тёмно-синяя толстовка
+        PART_TORSO_LOW => 0xFF283044, // тёмный низ
+        PART_ARM_LEFT => 0xFF2E3D5E,  // тот же рукав
+        PART_ARM_RIGHT => 0xFF2E3D5E,
+        PART_LEG_LEFT => 0xFF1E2436, // тёмные штаны
+        PART_LEG_RIGHT => 0xFF1E2436,
+        PART_FOOT_LEFT => 0xFF141414, // тёмная обувь
+        PART_FOOT_RIGHT => 0xFF141414,
+        PART_CAP => 0xFF5A8AB8,      // голубая бейсболка (светлая!)
+        PART_BACKPACK => 0xFF4A5A3A, // олива (тёмно-зелёный)
+        PART_STRAP_L => 0xFF2A1F18,  // тёмно-коричневые лямки
+        PART_STRAP_R => 0xFF2A1F18,
+        PART_FACE => 0xFFDCB48C, // кожа
+        PART_EAR_L => 0xFFDCB48C,
+        PART_EAR_R => 0xFFDCB48C,
+        PART_NOSE => 0xFFDCB48C,
         _ => return 0,
     };
 
@@ -30,9 +35,6 @@ fn color_for_part(part: u8, z: f32) -> u32 {
     0xFF000000 | (r << 16) | (g << 8) | b
 }
 
-// ------------------------------------------------------------
-// Рендер героя в буфер (BGRA)
-// ------------------------------------------------------------
 pub unsafe fn render_hero(
     buffer: *mut u32,
     width: i32,
@@ -41,7 +43,26 @@ pub unsafe fn render_hero(
     cy: i32,
     facing: f32,
     scale: f32,
+    pose: u32,
+    anim_phase: f32,
 ) {
+    // --- Углы качания по позе (sin от угла) ---
+    let swing_amp = match pose {
+        1 => 0.22f32, // WALKING
+        2 => 0.42f32, // RUNNING
+        3 => 0.12f32, // SNEAKING
+        _ => 0.0f32,
+    };
+
+    let s = anim_phase.sin();
+
+    let swing = Swing {
+        arm_left: -swing_amp * s,
+        arm_right: swing_amp * s,
+        leg_left: swing_amp * s,
+        leg_right: -swing_amp * s,
+    };
+
     let max_local: f32 = 30.0;
     let px_max = (max_local * scale) as i32 + 2;
     let py_max = (max_local * scale) as i32 + 2;
@@ -64,14 +85,13 @@ pub unsafe fn render_hero(
             let wx = dx as f32 / scale;
             let wy = dy as f32 / scale;
 
-            // Мировое → локальное (обратный поворот)
             let lx = wx * ca - wy * sa;
             let ly = wx * sa + wy * ca;
 
             let mut part: u8 = 255;
-            let z = highest_z_local(lx, ly, &mut part);
+            let z = highest_z_local(lx, ly, &mut part, &swing);
 
-            if z >= 0.0 && part < 9 {
+            if z >= 0.0 && part < 17 {
                 let idx = (py * width + px) as usize;
                 *buffer.add(idx) = color_for_part(part, z);
             }
