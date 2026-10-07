@@ -1,6 +1,6 @@
 #include "render/Renderer.h"
 #include "render/FadeMask.h"
-#include "render/DrawHero.h"
+#include "render/HeroRenderer.h"
 #include "world/Sphere.h"
 #include "app/Config.h"
 #include <algorithm>
@@ -144,23 +144,39 @@ void renderWorld(std::uint32_t* buffer,
             if (dst_x + CELL_SIZE < 0 || dst_x >= SCR_W) continue;
             if (dst_y + CELL_SIZE < 0 || dst_y >= SCR_H) continue;
 
-            float c_cx = ddx + CELL_SIZE * 0.5f;
-            float c_cy = ddy + CELL_SIZE * 0.5f;
+                        float cell_half = CELL_SIZE * 0.5f;
+            float c_cx = ddx + cell_half;
+            float c_cy = ddy + cell_half;
             float center_sq = c_cx * c_cx + c_cy * c_cy;
-            float cell_radius_sq = CELL_SIZE * CELL_SIZE * 0.5f;
 
-            if (center_sq + cell_radius_sq <= R_CORE * R_CORE) {
+            // Ближайший пиксель ячейки к центру обзора
+            float dx_near = std::max(0.0f, std::abs(c_cx) - cell_half);
+            float dy_near = std::max(0.0f, std::abs(c_cy) - cell_half);
+            float nearest_sq = dx_near * dx_near + dy_near * dy_near;
+
+            // Дальний угол ячейки от центра обзора
+            float dx_far = std::abs(c_cx) + cell_half;
+            float dy_far = std::abs(c_cy) + cell_half;
+            float farthest_sq = dx_far * dx_far + dy_far * dy_far;
+
+            if (farthest_sq <= R_CORE * R_CORE) {
+                // Ячейка целиком в ядре — opaque
                 blitCellOpaque(buffer, cell, dst_x, dst_y);
-            } else if (center_sq - cell_radius_sq < R_FADE * R_FADE) {
+            } else if (nearest_sq < R_FADE * R_FADE) {
+                // Есть пиксели в зоне fade — рисуем с fade
                 blitCellFaded(buffer, cell, dst_x, dst_y);
             }
+            // Иначе — ячейка вне обзора, пропускаем
         }
     }
 
     drawStartMarker(buffer, cx, cy);
 
-    // ГЕРОЙ — вместо цилиндра
-    drawHero(buffer, SCR_W, SCR_H, CXP, CYP, character);
+    // ГЕРОЙ — из срезов
+    Render::drawHeroFromSlices(buffer, SCR_W, SCR_H,
+                                CXP, CYP,
+                                character.state.facing_rad,
+                                1.0f);
 }
 
 } // namespace SSE::Render

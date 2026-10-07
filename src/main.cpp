@@ -49,16 +49,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
         if (mx != 0.0f || my != 0.0f) {
             float speed = SPEED_WALK;
-            Body::Pose pose = Body::Pose::WALKING;
-
-            if (GetAsyncKeyState(VK_SHIFT)   & 0x8000) {
-                speed = SPEED_RUN;
-                pose  = Body::Pose::RUNNING;
-            }
-            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
-                speed = SPEED_SNEAK;
-                pose  = Body::Pose::SNEAKING;
-            }
+            if (GetAsyncKeyState(VK_SHIFT)   & 0x8000) speed = SPEED_RUN;
+            if (GetAsyncKeyState(VK_CONTROL) & 0x8000) speed = SPEED_SNEAK;
 
             float len = std::sqrt(mx * mx + my * my);
             hero.world_x += mx / len * speed * dt;
@@ -66,9 +58,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             hero.world_x = Sphere::wrapFloat(hero.world_x);
             hero.world_y = Sphere::wrapFloat(hero.world_y);
 
-            hero.state.pose = pose;
+            hero.state.pose = Body::Pose::WALKING;
 
-            // Угол движения: atan2(x, y) → 0 = юг, по часовой
+            // Целевой угол
             float target = std::atan2(mx, my);
 
             // Плавный поворот
@@ -82,15 +74,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             if (diff < -max_turn) diff = -max_turn;
 
             hero.state.facing_rad += diff;
-
-            // Анимация ходьбы
-            hero.state.anim_phase += dt * 8.0f;
-            constexpr float TWO_PI = 6.2831853f;
-            while (hero.state.anim_phase >= TWO_PI)
-                hero.state.anim_phase -= TWO_PI;
         } else {
             hero.state.pose = Body::Pose::STANDING;
-            hero.state.anim_phase = 0.0f;
         }
 
         // ---------- Мир ----------

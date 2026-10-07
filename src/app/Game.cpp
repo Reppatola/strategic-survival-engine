@@ -13,6 +13,8 @@ Game::Game() {
     character_ = Characters::hero01();
     character_.world_x = 0.0f;
     character_.world_y = 0.0f;
+    character_.state.facing_rad = 0.0f;
+    character_.state.pose = Body::Pose::STANDING;
 }
 
 void Game::tickFps(float dt) {

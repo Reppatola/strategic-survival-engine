@@ -103,26 +103,6 @@ void drawHeroTopDown(HDC hdc) {
     }
 
     // --------------------------------------------------------
-    // СЛОЙ 1: ТЕНЬ (сдвиг вправо-вниз)
-    // --------------------------------------------------------
-    constexpr float SHADOW_DX = 3.0f;   // см
-    constexpr float SHADOW_DY = 4.0f;
-
-    for (int sy = 0; sy < WIN_H; ++sy) {
-        for (int sx = 0; sx < WIN_W; ++sx) {
-            float wx = (sx - WIN_W / 2.0f) / SCALE - SHADOW_DX;
-            float wy = (sy - WIN_H / 2.0f) / SCALE - SHADOW_DY;
-
-            int part = -1;
-            float z = highestZAt(wx, wy, part);
-
-            if (z >= 0.0f) {
-                SetPixelV(hdc, sx, sy, RGB(15, 15, 20));
-            }
-        }
-    }
-
-    // --------------------------------------------------------
     // СЛОЙ 2: ТЕЛО
     // --------------------------------------------------------
     for (int sy = 0; sy < WIN_H; ++sy) {

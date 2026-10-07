@@ -1,6 +1,4 @@
-#ifndef SSE_APP_GAME_H
-#define SSE_APP_GAME_H
-
+#pragma once
 #include "world/World.h"
 #include "data/character/Character.h"
 #include <cstdint>
@@ -30,5 +28,3 @@ private:
 };
 
 } // namespace SSE
-
-#endif

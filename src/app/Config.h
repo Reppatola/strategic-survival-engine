@@ -22,9 +22,9 @@ constexpr int WORLD_SIZE  = WORLD_CELLS * CELL_SIZE;  // 6144 px
 constexpr int WORLD_TOTAL = WORLD_CELLS * WORLD_CELLS;
 
 // --- Наблюдатель ---
-constexpr float R_CORE = 80.0f;       // зона чёткости
-constexpr float R_FADE = 500.0f;      // граница размытия
-constexpr float R_LOAD = 900.0f;      // буфер загрузки
+constexpr float R_CORE = 60.0f;    // было 80
+constexpr float R_FADE = 400.0f;   // было 500
+constexpr float R_LOAD = 800.0f;   // было 900
 
 // --- Скорости передвижения (px/сек) ---
 constexpr float SPEED_WALK  = 140.0f;

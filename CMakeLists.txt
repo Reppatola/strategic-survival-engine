@@ -52,6 +52,7 @@ add_executable(sse_prototype WIN32
     src/render/FadeMask.cpp
     src/render/Renderer.cpp
     src/render/DrawHero.cpp
+    src/render/HeroRenderer.cpp
     src/platform/Win32Window.cpp
 )
 target_include_directories(sse_prototype PRIVATE ${CMAKE_SOURCE_DIR}/src)
