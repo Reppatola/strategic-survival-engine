@@ -15,11 +15,43 @@
 #include "render/FadeMask.h"
 #include "world/Sphere.h"
 #include "data/body/BodyState.h"
-// FFI: получить частоту фазы из Rust
-extern "C" float rust_get_phase_rate(unsigned int pose);
 
 using namespace SSE;
 using namespace SSE::Config;
+
+// ============================================================
+// FFI: Rust-функции
+// ============================================================
+extern "C" float rust_get_phase_rate(unsigned int pose);
+
+extern "C" float rust_step_db(
+    unsigned int pose,
+    const char* surface,  size_t surface_len,
+    const char* footwear, size_t footwear_len
+);
+
+extern "C" void  rust_print_step_table();
+
+extern "C" float rust_db_at_distance(float l1_db, float r_meters);
+
+extern "C" float rust_hearing_radius(float l1_db, float threshold_db);
+
+// ============================================================
+// Хелпер: посчитать dB шага для текущей позы
+// ============================================================
+float compute_step_db(Body::Pose pose)
+{
+    // Пока — фиксированные поверхность и обувь.
+    // Позже — из данных мира и экипировки.
+    const char* surface  = "grass";
+    const char* footwear = "sneakers";
+
+    return rust_step_db(
+        static_cast<unsigned int>(pose),
+        surface,  std::strlen(surface),
+        footwear, std::strlen(footwear)
+    );
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     Platform::Win32Window window;
@@ -27,6 +59,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
         return 1;
 
     Render::buildFadeMask();
+
+    // --- Один раз печатаем таблицу шума шага в консоль ---
+    rust_print_step_table();
 
     Game game;
     auto last = std::chrono::steady_clock::now();
@@ -83,7 +118,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
             hero.state.facing_rad += diff;
 
-            // ФАЗА АНИМАЦИИ — частота берётся из Rust
+            // ФАЗА АНИМАЦИИ — частота из Rust
             float rate = rust_get_phase_rate(
                 static_cast<unsigned int>(hero.state.pose));
             hero.state.anim_phase += dt * rate;
@@ -108,19 +143,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
             if (hudTimer >= 0.25f) {
                 hudTimer = 0.0f;
 
-                float mdx = Sphere::wrapDelta(0.0f - hero.world_x);
-                float mdy = Sphere::wrapDelta(0.0f - hero.world_y);
-                float mdist = std::sqrt(mdx * mdx + mdy * mdy);
+                // Шум текущего шага
+                float step_db = compute_step_db(hero.state.pose);
 
-                wchar_t buf[256];
+                // Радиус слышимости для порога зомби (30 dB)
+                float hear_r = (step_db > 0.0f)
+                    ? rust_hearing_radius(step_db, 30.0f)
+                    : 0.0f;
+
+                // Громкость на 10 м
+                float at_10m = (step_db > 0.0f)
+                    ? rust_db_at_distance(step_db, 10.0f)
+                    : 0.0f;
+
+                wchar_t buf[320];
                 swprintf_s(buf,
-                    L"Pos: %.0f, %.0f  |  Cells: %zu  |  FPS: %.1f  |  pose=%d  phase=%.2f",
+                    L"Pos: %.0f,%.0f | Cells:%zu | FPS:%.1f | pose=%d phase=%.2f | step=%.1fdB  R(30dB)=%.1fm  @10m=%.1fdB",
                     hero.world_x,
                     hero.world_y,
                     game.world().loadedCount(),
                     game.fps(),
                     static_cast<int>(hero.state.pose),
-                    hero.state.anim_phase);
+                    hero.state.anim_phase,
+                    step_db,
+                    hear_r,
+                    at_10m);
                 hudLine1 = buf;
             }
 
