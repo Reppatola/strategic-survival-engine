@@ -34,14 +34,14 @@ inline std::uint32_t colorFromRGB(std::uint8_t r, std::uint8_t g, std::uint8_t b
 }
 
 // ------------------------------------------------------------
-// Клип по Y: рисуем ТОЛЬКО в зоне мира
+// Клип по Y
 // ------------------------------------------------------------
 inline bool in_world_y(int sy) {
     return sy >= WORLD_TOP && sy < WORLD_BOT;
 }
 
 // ------------------------------------------------------------
-// Смешать цвет c с фоном по коэффициенту alpha (0..255)
+// Смешать цвет
 // ------------------------------------------------------------
 inline std::uint32_t blendColor(std::uint32_t c, std::uint32_t bg, std::uint32_t a)
 {
@@ -58,7 +58,7 @@ inline std::uint32_t blendColor(std::uint32_t c, std::uint32_t bg, std::uint32_t
 }
 
 // ------------------------------------------------------------
-// Blit ячейки — БЕЗ радиального fade, С зрением
+// Blit ячеек с зрением
 // ------------------------------------------------------------
 static void blitCellOpaque(std::uint32_t* screen,
                            const CachedCell& cell,
@@ -68,7 +68,6 @@ static void blitCellOpaque(std::uint32_t* screen,
     for (const auto& p : cell.pixels) {
         int sx = dst_x + p.dx;
         int sy = dst_y + p.dy;
-
         if (static_cast<unsigned>(sx) >= SCR_W) continue;
         if (!in_world_y(sy)) continue;
 
@@ -76,18 +75,11 @@ static void blitCellOpaque(std::uint32_t* screen,
         if (vis == 0) continue;
 
         std::uint32_t* dst = &screen[sy * SCR_W + sx];
-
-        if (vis >= 250) {
-            *dst = p.color;
-        } else {
-            *dst = blendColor(p.color, *dst, vis);
-        }
+        if (vis >= 250) *dst = p.color;
+        else            *dst = blendColor(p.color, *dst, vis);
     }
 }
 
-// ------------------------------------------------------------
-// Blit ячейки — С радиальным fade И зрением
-// ------------------------------------------------------------
 static void blitCellFaded(std::uint32_t* screen,
                           const CachedCell& cell,
                           int dst_x, int dst_y,
@@ -96,7 +88,6 @@ static void blitCellFaded(std::uint32_t* screen,
     for (const auto& p : cell.pixels) {
         int sx = dst_x + p.dx;
         int sy = dst_y + p.dy;
-
         if (static_cast<unsigned>(sx) >= SCR_W) continue;
         if (!in_world_y(sy)) continue;
 
@@ -111,12 +102,8 @@ static void blitCellFaded(std::uint32_t* screen,
         if (!a) continue;
 
         std::uint32_t* dst = &screen[sy * SCR_W + sx];
-
-        if (a >= 250) {
-            *dst = p.color;
-        } else {
-            *dst = blendColor(p.color, *dst, a);
-        }
+        if (a >= 250) *dst = p.color;
+        else          *dst = blendColor(p.color, *dst, a);
     }
 }
 
@@ -149,6 +136,159 @@ static void drawStartMarker(std::uint32_t* sbuf, float cx, float cy) {
         for (int ox = -3; ox <= 3; ++ox)
             if (ox*ox + oy*oy <= 9)
                 put(sx + ox, sy + oy, 0xFFFFFFFFu);
+}
+
+// ============================================================
+// СОСТОЯНИЕ ЗОМБИ
+// ============================================================
+struct ZombieInstance {
+    float x = 300.0f;
+    float y = 0.0f;
+    float facing_rad = 1.5708f;   // +X — смотрит от игрока
+
+    float phase = 0.0f;
+
+    enum class Mode : unsigned char { IDLE = 0, ALERT = 1, CHASE = 2 };
+    Mode mode = Mode::IDLE;
+};
+
+static ZombieInstance g_zombie;
+
+// ------------------------------------------------------------
+// Обновление и рендер зомби
+// ------------------------------------------------------------
+static void updateAndDrawZombie(std::uint32_t* buffer,
+                                 float cx, float cy,
+                                 float sin_f, float cos_f,
+                                 float dt)
+{
+    // --- Вектор к игроку ---
+    float to_px = Sphere::wrapDelta(cx - g_zombie.x);
+    float to_py = Sphere::wrapDelta(cy - g_zombie.y);
+    float to_dist = std::sqrt(to_px * to_px + to_py * to_py);
+
+    // --- Зрение зомби ---
+    constexpr float ZOMBIE_VISION_RANGE = 500.0f;  // 5 м
+
+    float z_sin = std::sin(g_zombie.facing_rad);
+    float z_cos = std::cos(g_zombie.facing_rad);
+
+    float dot = (to_dist > 0.01f)
+        ? (to_px * z_sin + to_py * z_cos) / to_dist
+        : 0.0f;
+
+    bool in_periph = (to_dist < ZOMBIE_VISION_RANGE) && (dot > -0.174f);
+    bool in_focus  = (to_dist < ZOMBIE_VISION_RANGE) && (dot >  0.866f);
+
+    // --- Параметры движения ---
+    constexpr float TURN_SPEED   = 2.0f;   // рад/с — поворот при ALERT
+    constexpr float ZOMBIE_SPEED = 60.0f;  // px/s — движение в CHASE
+    constexpr float ZOMBIE_STOP  = 20.0f;  // px — дистанция остановки
+
+    float turn_target = std::atan2(to_px, to_py);
+
+    bool moving = false;
+
+    // --- Машина состояний ---
+    switch (g_zombie.mode) {
+        case ZombieInstance::Mode::IDLE: {
+            if (in_periph) {
+                g_zombie.mode = ZombieInstance::Mode::ALERT;
+            }
+            break;
+        }
+
+        case ZombieInstance::Mode::ALERT: {
+            // Поворот к игроку (медленный)
+            float diff = turn_target - g_zombie.facing_rad;
+            while (diff >  3.14159265f) diff -= 6.2831853f;
+            while (diff < -3.14159265f) diff += 6.2831853f;
+
+            float max_turn = TURN_SPEED * dt;
+            if (diff >  max_turn) diff =  max_turn;
+            if (diff < -max_turn) diff = -max_turn;
+
+            g_zombie.facing_rad += diff;
+
+            // Переходы
+            if (!in_periph) {
+                g_zombie.mode = ZombieInstance::Mode::IDLE;
+            } else if (in_focus) {
+                g_zombie.mode = ZombieInstance::Mode::CHASE;
+            }
+            break;
+        }
+
+        case ZombieInstance::Mode::CHASE: {
+            // Поворот к игроку (быстрый)
+            float diff = turn_target - g_zombie.facing_rad;
+            while (diff >  3.14159265f) diff -= 6.2831853f;
+            while (diff < -3.14159265f) diff += 6.2831853f;
+
+            float max_turn = TURN_SPEED * 2.0f * dt;
+            if (diff >  max_turn) diff =  max_turn;
+            if (diff < -max_turn) diff = -max_turn;
+
+            g_zombie.facing_rad += diff;
+
+            // Движение, если далеко
+            if (to_dist > ZOMBIE_STOP && to_dist > 0.01f) {
+                float step = ZOMBIE_SPEED * dt;
+                if (step > to_dist - ZOMBIE_STOP) step = to_dist - ZOMBIE_STOP;
+
+                g_zombie.x += (to_px / to_dist) * step;
+                g_zombie.y += (to_py / to_dist) * step;
+                g_zombie.x = Sphere::wrapFloat(g_zombie.x);
+                g_zombie.y = Sphere::wrapFloat(g_zombie.y);
+
+                g_zombie.phase += dt * 3.14f;
+                if (g_zombie.phase > 6.2831853f) g_zombie.phase -= 6.2831853f;
+                moving = true;
+            }
+
+            // Потеряли — в IDLE
+            if (!in_periph) {
+                g_zombie.mode = ZombieInstance::Mode::IDLE;
+            }
+            break;
+        }
+    }
+
+    // --- Рендер зомби ---
+    float zdx = Sphere::wrapDelta(g_zombie.x - cx);
+    float zdy = Sphere::wrapDelta(g_zombie.y - cy);
+    float zdist = std::sqrt(zdx * zdx + zdy * zdy);
+
+    if (zdist < R_FADE) {
+        int zcx = CXP + static_cast<int>(zdx);
+        int zcy = CYP + static_cast<int>(zdy);
+
+        std::uint8_t vis = visionAt(zcx, zcy, sin_f, cos_f);
+
+        if (vis > 0) {
+            float fade = 1.0f;
+            float fade_start = R_FADE * 0.7f;
+            if (zdist > fade_start) {
+                fade = 1.0f - (zdist - fade_start) / (R_FADE - fade_start);
+                if (fade < 0.0f) fade = 0.0f;
+            }
+
+            fade = fade * (static_cast<float>(vis) / 255.0f);
+
+            if (fade > 0.02f) {
+                constexpr float OBS_HEIGHT = 3000.0f;
+
+                rust_render_zombie(buffer, SCR_W, SCR_H,
+                                    zcx, zcy,
+                                    g_zombie.facing_rad,
+                                    0.8f,
+                                    moving ? 1u : 0u,
+                                    g_zombie.phase,
+                                    OBS_HEIGHT,
+                                    fade);
+            }
+        }
+    }
 }
 
 // ------------------------------------------------------------
@@ -223,80 +363,10 @@ void renderWorld(std::uint32_t* buffer,
 
     drawStartMarker(buffer, cx, cy);
 
-    // ============================================================
-    // ЗОМБИ
-    // ============================================================
-    {
-        static float zw_x    = 300.0f;
-        static float zw_y    = 0.0f;
-        static float z_phase = 0.0f;
+    // ---------- ЗОМБИ ----------
+    updateAndDrawZombie(buffer, cx, cy, sin_f, cos_f, dt);
 
-        float dx = Sphere::wrapDelta(cx - zw_x);
-        float dy = Sphere::wrapDelta(cy - zw_y);
-        float dist = std::sqrt(dx * dx + dy * dy);
-
-        constexpr float ZOMBIE_SPEED = 60.0f;
-        constexpr float ZOMBIE_STOP  = 20.0f;
-
-        bool moving = false;
-        if (dist > ZOMBIE_STOP) {
-            float step = ZOMBIE_SPEED * dt;
-            if (step > dist - ZOMBIE_STOP) step = dist - ZOMBIE_STOP;
-
-            zw_x += (dx / dist) * step;
-            zw_y += (dy / dist) * step;
-            zw_x = Sphere::wrapFloat(zw_x);
-            zw_y = Sphere::wrapFloat(zw_y);
-            moving = true;
-        }
-
-        if (moving) {
-            z_phase += dt * 3.14f;
-            if (z_phase > 6.2831853f) z_phase -= 6.2831853f;
-        } else {
-            z_phase = 0.0f;
-        }
-
-        float zdx = Sphere::wrapDelta(zw_x - cx);
-        float zdy = Sphere::wrapDelta(zw_y - cy);
-        float zdist = std::sqrt(zdx * zdx + zdy * zdy);
-
-        if (zdist < R_FADE) {
-            int zcx = CXP + static_cast<int>(zdx);
-            int zcy = CYP + static_cast<int>(zdy);
-
-            std::uint8_t vis = visionAt(zcx, zcy, sin_f, cos_f);
-
-            if (vis > 0) {
-                float fade = 1.0f;
-                float fade_start = R_FADE * 0.7f;
-                if (zdist > fade_start) {
-                    fade = 1.0f - (zdist - fade_start) / (R_FADE - fade_start);
-                    if (fade < 0.0f) fade = 0.0f;
-                }
-
-                fade = fade * (static_cast<float>(vis) / 255.0f);
-
-                if (fade > 0.02f) {
-                    float z_facing = std::atan2(dx, dy);
-                    constexpr float OBS_HEIGHT = 3000.0f;
-
-                    rust_render_zombie(buffer, SCR_W, SCR_H,
-                                        zcx, zcy,
-                                        z_facing,
-                                        0.8f,
-                                        moving ? 1u : 0u,
-                                        z_phase,
-                                        OBS_HEIGHT,
-                                        fade);
-                }
-            }
-        }
-    }
-
-    // ============================================================
-    // ГЕРОЙ
-    // ============================================================
+    // ---------- ГЕРОЙ ----------
     Render::drawHeroFromSlices(buffer, SCR_W, SCR_H,
                                 CXP, CYP,
                                 character.state.facing_rad,
